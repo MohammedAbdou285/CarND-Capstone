@@ -31,7 +31,7 @@ TYPE = {
     'steer_cmd': SteeringCmd,
     'brake_cmd': BrakeCmd,
     'throttle_cmd': ThrottleCmd,
-    'final_waypoints': Lane,
+    'path_draw': Lane,
     'image':Image
 }
 
