@@ -195,12 +195,13 @@ class Bridge(object):
         x_values = []
         y_values = []
         z_values = []
-        for waypoint in data.waypoints:
-            x = waypoint.pose.position.x
-            y = waypoint.pose.position.y
-            z = waypoint.pose.position.z
+        for i  in range(10):
+	    waypoint = data.waypoints[i]
+            x = waypoint.pose.pose.position.x
+            y = waypoint.pose.pose.position.y
+            z = waypoint.pose.pose.position.z+0.5
             x_values.append(x)
             y_values.append(y)
             z_values.append(z)
 
-        self.server('drawline', data={'next_x': str(x_values), 'next_y': str(y_values), 'next_z': str(z_values)})
+        self.server('drawline', data={'next_x': x_values, 'next_y': y_values, 'next_z': z_values})
