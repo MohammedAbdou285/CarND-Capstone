@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
+from scipy.spatial import KDTree
+
 import rospy
+from std_msgs.msg import Float32, Int32
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 
@@ -21,7 +24,7 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 100 # Number of waypoints we will publish. You can change this number
 
 
 class WaypointUpdater(object):
@@ -38,21 +41,61 @@ class WaypointUpdater(object):
 
         # TODO: Add other member variables you need below
         self.waypoints = self.pose = None
+        self.waypoints_plane = None
 
-        rospy.spin()
+        self.loop()
+
+    def loop(self):
+        rate = rospy.Rate(50)
+        while not rospy.is_shutdown():
+            if self.pose is not None and self.waypoints is not None:
+                closest_waypoint = self.get_closest_waypoint(self.pose.pose)
+                self.publish_waypoints(closest_waypoint)
+            rate.sleep()
 
     def pose_cb(self, msg):
         # TODO: Implement
         self.pose = msg
-        self.final_waypoints_pub.publish(self.waypoints)
 
     def waypoints_cb(self, waypoints):
-        # TODO: Implement
+        if self.waypoints_plane is None:
+            self.waypoints_plane = []
+            for waypoint in waypoints.waypoints:
+                self.waypoints_plane.append(
+                    [waypoint.pose.pose.position.x, waypoint.pose.pose.position.y])
+
+            self.waypoint_tree = KDTree(self.waypoints_plane)
+
         self.waypoints = waypoints
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
         pass
+
+    def get_closest_waypoint(self, pose):
+        return self.waypoint_tree.query(
+            [pose.position.x, pose.position.y], 1)[1]
+
+    def publish_waypoints(self, closest_waypoint):
+        if closest_waypoint is None or self.waypoints is None or\
+           closest_waypoint < 0 or closest_waypoint >= len(self.waypoints.waypoints):
+            return
+
+        temp = Lane()
+        temp.header = self.waypoints.header
+
+        current_waypoint = Waypoint()
+        current_waypoint.pose = self.pose
+        current_waypoint.twist = self.waypoints.waypoints[closest_waypoint].twist
+
+        temp.waypoints.append(current_waypoint)
+
+        for i in range(LOOKAHEAD_WPS):
+            wp = closest_waypoint + i
+            if wp >= len(self.waypoints.waypoints):
+                break
+            temp.waypoints.append(self.waypoints.waypoints[wp])
+        self.final_waypoints_pub.publish(temp)
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
