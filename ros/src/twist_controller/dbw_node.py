@@ -69,7 +69,7 @@ class DBWNode(object):
         # self.controller = TwistController(<Arguments you wish to provide>)
 
         # TODO: Subscribe to all the topics you need to
-        ospy.Subscriber('/vehicle/steering_report', SteeringReport,
+        rospy.Subscriber('/vehicle/steering_report', SteeringReport,
                          self.vel_cb)
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
