@@ -195,8 +195,7 @@ class Bridge(object):
         x_values = []
         y_values = []
         z_values = []
-        for i  in range(10):
-	    waypoint = data.waypoints[i]
+        for waypoint in data.waypoints:
             x = waypoint.pose.pose.position.x
             y = waypoint.pose.pose.position.y
             z = waypoint.pose.pose.position.z+0.5
