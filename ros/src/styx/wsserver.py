@@ -8,29 +8,29 @@ routes = {}
 
 def on(topic):
     def decorator(func):
-        routes[topic] = func
         @wraps(func)
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
+        routes[topic] = wrapper
         return wrapper
     return decorator
 
+def set_inst(i):
+    global inst
+    inst = i
 
 class Client(WebSocket):
     def handleMessage(self):
         data = json.loads(self.data.decode('utf8'))
         topic = data.keys()[0]
-        print data
         if topic in routes:
-            print topic
-            print data[topic]
-            routes[topic](data[topic])
-        self.sendMessage(json.dumps({
-            "topic": "throttle",
-            "data": {
-                "throttle": 0.1
-            }
-        }))
+            routes[topic](inst, data[topic])
+        #self.sendMessage(json.dumps({
+        #    "topic": "throttle",
+        #    "data": {
+        #        "throttle": 0.1
+        #    }
+        #}))
 
     def handleConnected(self):
         clients.append(self)
@@ -48,5 +48,3 @@ def get_server(host, port):
 def get_clients():
     return clients
 
-s = SimpleWebSocketServer('127.0.0.1', 4567, Client)
-s.serveforever()

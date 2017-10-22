@@ -182,14 +182,19 @@ class Bridge(object):
         self.publishers['image'].publish(image_message)
 
     def callback_steering(self, data):
-        self.server('steer', data={'steering_angle': str(data.steering_wheel_angle_cmd)})
+        #print("enter callback steering")
+        #self.server.send('steer', data={'steering_angle': str(data.steering_wheel_angle_cmd)})
+	self.server.setSteerData(data={'steering_angle': str(data.steering_wheel_angle_cmd)})
 
     def callback_throttle(self, data):
-        self.server('throttle', data={'throttle': str(data.pedal_cmd)})
+        #print("enter callback throttle")
+	#self.server.send('throttle', data={'throttle': str(data.pedal_cmd)})
+	self.server.setThrottleData(data={'throttle': str(data.pedal_cmd)})
 
     def callback_brake(self, data):
-        #rospy.logerr("Brake=%f", data.pedal_cmd/660./9.8)
-        self.server('brake', data={'brake': str(data.pedal_cmd)})
+        #print("enter callback brake")
+	#self.server.send('brake', data={'brake': str(data.pedal_cmd)})
+	self.server.setBrakeData(data={'brake': str(data.pedal_cmd)})
 
     def callback_path(self, data):
         x_values = []
@@ -202,5 +207,6 @@ class Bridge(object):
             x_values.append(x)
             y_values.append(y)
             z_values.append(z)
-
-        self.server('drawline', data={'next_x': x_values, 'next_y': y_values, 'next_z': z_values})
+	
+	self.server.setPathData(data={'next_x': x_values, 'next_y': y_values, 'next_z': z_values})
+        #self.server.send('drawline', data={'next_x': x_values, 'next_y': y_values, 'next_z': z_values})

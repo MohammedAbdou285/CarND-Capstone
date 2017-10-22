@@ -90,6 +90,7 @@ class DBWNode(object):
                                             self.dbw_enabled)
 
                 self.throttle, self.brake, self.steer = t, b, s
+		print(t)
 
             if self.dbw_enabled:
                 self.publish(self.throttle, self.brake, self.steer)
