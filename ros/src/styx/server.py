@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
+import json
+
 import socketio
 import eventlet
 import eventlet.wsgi
@@ -26,6 +29,33 @@ def send(topic, data):
 
 bridge = Bridge(conf, send)
 
+class SimpleEcho(WebSocket):
+    def handleMessage(self):
+        s = str(self.data)
+        print(self.data)
+        print(type(self.data))
+        my_bytes_value = self.data
+        # Decode UTF-8 bytes to Unicode, and convert single quotes 
+        # to double quotes to make it valid JSON
+        my_json = my_bytes_value.decode('utf8').replace("'", '"')
+        data = json.loads(my_json)
+        
+        print(data)
+    def handleConnected(self):
+        bridge.reg(self)
+        print("CONNECTED")
+        #self.sendMessage('{slam:{}}')
+        print(self.address, 'connected')
+    def handleClose(self):
+        print(self.address, 'closed')
+server = SimpleWebSocketServer('127.0.0.1',4567, SimpleEcho)
+import threading
+import time
+t = threading.Thread(target=server.serveforever)
+t.start()
+
+
+'''
 @sio.on('telemetry')
 def telemetry(sid, data):
     global dbw_enable
@@ -64,3 +94,4 @@ if __name__ == '__main__':
 
     # deploy as an eventlet WSGI server
     eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
+'''
