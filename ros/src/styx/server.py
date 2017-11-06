@@ -1,97 +1,64 @@
 #!/usr/bin/env python
-
-from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
-import json
-
-import socketio
-import eventlet
-import eventlet.wsgi
-import time
-from flask import Flask, render_template
-
+from wsserver import get_server, get_clients, on
 from bridge import Bridge
 from conf import conf
+import json
+wss = get_server('127.0.0.1', 4567)
 
-sio = socketio.Server()
-app = Flask(__name__)
-msgs = []
+class StyxServer(object):
 
-dbw_enable = False
+    def __init__(self, wss):
+        self.wss = wss
+        self.bridge = Bridge(conf, self)
+        self.dbw_enable = False
+        self.clients = get_clients()
 
-@sio.on('connect')
-def connect(sid, environ):
-    print("connect ", sid)
+    def start_server(self):
+        self.wss.serveforever()
 
-def send(topic, data):
-    s = 1
-    msgs.append((topic, data))
-    #sio.emit(topic, data=json.dumps(data), skip_sid=True)
+    def send(self, topic, data):
+        for client in self.clients:
+            client.sendMessage(json.dumps({'topic': topic, 'data': data}))
 
-bridge = Bridge(conf, send)
+    @on('telemetry')
+    def telemetry(self, data):
+        print data
+        return
+        if data["dbw_enable"] != self.dbw_enable:
+            self.dbw_enable = data["dbw_enable"]
+            self.bridge.set_connected(True)
+            self.bridge.publish_dbw_status(self.dbw_enable)
+        self.bridge.publish_odometry(data)
 
-class SimpleEcho(WebSocket):
-    def handleMessage(self):
-        s = str(self.data)
-        print(self.data)
-        print(type(self.data))
-        my_bytes_value = self.data
-        # Decode UTF-8 bytes to Unicode, and convert single quotes 
-        # to double quotes to make it valid JSON
-        my_json = my_bytes_value.decode('utf8').replace("'", '"')
-        data = json.loads(my_json)
-        
-        print(data)
-    def handleConnected(self):
-        bridge.reg(self)
-        print("CONNECTED")
-        #self.sendMessage('{slam:{}}')
-        print(self.address, 'connected')
-    def handleClose(self):
-        print(self.address, 'closed')
-server = SimpleWebSocketServer('127.0.0.1',4567, SimpleEcho)
-import threading
-import time
-t = threading.Thread(target=server.serveforever)
-t.start()
+    @on('control')
+    def control(self, data):
+        print data
+        return
+        self.bridge.publish_controls(data)
+
+    @on('obstacle')
+    def obstacle(self, data):
+        print data
+        return
+        self.bridge.publish_obstacles(data)
+
+    @on('lidar')
+    def obstacle(self, data):
+        print data
+        return
+        self.bridge.publish_lidar(data)
+
+    @on('trafficlights')
+    def trafficlights(self, data):
+        print data
+        return
+        self.bridge.publish_traffic(data)
+
+    @on('image')
+    def image(self, data):
+        return
+        self.bridge.publish_camera(data)
 
 
-'''
-@sio.on('telemetry')
-def telemetry(sid, data):
-    global dbw_enable
-    if data["dbw_enable"] != dbw_enable:
-        dbw_enable = data["dbw_enable"]
-        bridge.publish_dbw_status(dbw_enable)
-    bridge.publish_odometry(data)
-    for i in range(len(msgs)):
-        topic, data = msgs.pop(0)
-        sio.emit(topic, data=data, skip_sid=True)
-
-@sio.on('control')
-def control(sid, data):
-    bridge.publish_controls(data)
-
-@sio.on('obstacle')
-def obstacle(sid, data):
-    bridge.publish_obstacles(data)
-
-@sio.on('lidar')
-def obstacle(sid, data):
-    bridge.publish_lidar(data)
-
-@sio.on('trafficlights')
-def trafficlights(sid, data):
-    bridge.publish_traffic(data)
-
-@sio.on('image')
-def image(sid, data):
-    bridge.publish_camera(data)
-
-if __name__ == '__main__':
-
-    # wrap Flask application with engineio's middleware
-    app = socketio.Middleware(sio, app)
-
-    # deploy as an eventlet WSGI server
-    eventlet.wsgi.server(eventlet.listen(('', 4567)), app)
-'''
+s = StyxServer(wss)
+s.start_server()
